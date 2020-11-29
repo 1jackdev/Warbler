@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
-from forms import UserAddForm, LoginForm, MessageForm
+from forms import UserAddForm, LoginForm, MessageForm, UserEditForm
 from models import db, connect_db, User, Message
 
 CURR_USER_KEY = "curr_user"
@@ -18,7 +18,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = (
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = False
-app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
+app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = True
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "it's a secret")
 toolbar = DebugToolbarExtension(app)
 
@@ -74,7 +74,7 @@ def signup():
                 password=form.password.data,
                 email=form.email.data,
                 image_url=form.image_url.data or User.image_url.default.arg,
-                header_image_url=form.header_image_url.data or User.image_url.default.arg,
+
             )
             db.session.commit()
 
@@ -153,7 +153,7 @@ def users_show(user_id):
                 .order_by(Message.timestamp.desc())
                 .limit(100)
                 .all())
-    
+
     return render_template('users/show.html', user=user, messages=messages)
 
 
@@ -212,35 +212,31 @@ def stop_following(follow_id):
 
 
 @app.route('/users/profile', methods=["GET", "POST"])
-def profile():
+def edit_profile():
     """Update profile for current user."""
 
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    form = UserAddForm()
+    user = g.user
+    form = UserEditForm(obj=user)
 
     if form.validate_on_submit():
-        try:
-            user = User.signup(
-                username=form.username.data,
-                password=form.password.data,
-                email=form.email.data,
-                image_url=form.image_url.data or User.image_url.default.arg,
-                header_image_url=form.header_image_url.data or User.image_url.default.arg,
-                bio=form.bio.data
+        if User.authenticate(user.username,
+                             form.password.data):
+            user.username = form.username.data,
+            user.email = form.email.data,
+            user.image_url = form.image_url.data or User.image_url.default.arg,
+            user.header_image_url = form.header_image_url.data or User.image_url.default.arg,
+            user.bio = form.bio.data
+            user.location = form.location.data
 
-            )
-            db.session.add(user)
             db.session.commit()
-
-        except IntegrityError:
-            flash("Username already taken", 'danger')
-            return render_template('users/signup.html', form=form)
-    
-    
-    # IMPLEMENT THIS
+            return redirect(f"/users/{user.id}")
+        else:
+            flash("Incorrect Password.", "danger")
+    return render_template("users/edit.html", user=user, form=form)
 
 
 @app.route('/users/delete', methods=["POST"])
