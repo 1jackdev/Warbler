@@ -74,6 +74,7 @@ def signup():
                 password=form.password.data,
                 email=form.email.data,
                 image_url=form.image_url.data or User.image_url.default.arg,
+                header_image_url=form.header_image_url.data or User.image_url.default.arg,
             )
             db.session.commit()
 
@@ -214,6 +215,30 @@ def stop_following(follow_id):
 def profile():
     """Update profile for current user."""
 
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    form = UserAddForm()
+
+    if form.validate_on_submit():
+        try:
+            user = User.signup(
+                username=form.username.data,
+                password=form.password.data,
+                email=form.email.data,
+                image_url=form.image_url.data or User.image_url.default.arg,
+                header_image_url=form.header_image_url.data or User.image_url.default.arg,
+                bio=form.bio.data
+
+            )
+            db.session.add(user)
+            db.session.commit()
+
+        except IntegrityError:
+            flash("Username already taken", 'danger')
+            return render_template('users/signup.html', form=form)
+    
     
     # IMPLEMENT THIS
 
