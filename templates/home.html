@@ -3,6 +3,7 @@
     <aside class="col-md-4 col-lg-3 col-sm-12" id="home-aside">
         <div class="card user-card">
             <div>
+                {%if g.user == user%}
                 <div class="image-wrapper">
                     <img
                         src="{{ g.user.header_image_url }}"
@@ -44,6 +45,50 @@
                         </h4>
                     </li>
                 </ul>
+                {%else%}
+                <div class="image-wrapper">
+                    <img
+                        src="{{ user.header_image_url }}"
+                        alt=""
+                        class="card-hero"
+                    />
+                </div>
+                <a href="/users/{{ user.id }}" class="card-link">
+                    <img
+                        src="{{ user.image_url }}"
+                        alt="Image for {{ user.username }}"
+                        class="card-image"
+                    />
+                    <p>@{{ user.username }}</p>
+                </a>
+                <ul class="user-stats nav nav-pills">
+                    <li class="stat">
+                        <p class="small">Messages</p>
+                        <h4>
+                            <a href="/users/{{ user.id }}"
+                                >{{ user.messages | length }}</a
+                            >
+                        </h4>
+                    </li>
+                    <li class="stat">
+                        <p class="small">Following</p>
+                        <h4>
+                            <a href="/users/{{ user.id }}/following"
+                                >{{ user.following | length }}</a
+                            >
+                        </h4>
+                    </li>
+                    <li class="stat">
+                        <p class="small">Followers</p>
+                        <h4>
+                            <a href="/users/{{ user.id }}/followers"
+                                >{{ user.followers | length }}</a
+                            >
+                        </h4>
+                    </li>
+                </ul>
+                {%endif%}
+
             </div>
         </div>
     </aside>

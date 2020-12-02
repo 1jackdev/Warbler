@@ -144,7 +144,7 @@ def users_show(user_id):
     """Show user profile."""
 
     user = User.query.get_or_404(user_id)
-
+    likes = [l.message_id for l in Likes.query.all()]
     # snagging messages in order from the database;
     # user.messages won't be in order by default
     messages = (Message
@@ -154,7 +154,7 @@ def users_show(user_id):
                 .limit(100)
                 .all())
 
-    return render_template('users/show.html', user=user, messages=messages)
+    return render_template('users/show.html', user=user, likes=likes, messages=messages)
 
 
 @app.route('/users/<int:user_id>/following')
@@ -179,6 +179,27 @@ def users_followers(user_id):
 
     user = User.query.get_or_404(user_id)
     return render_template('users/followers.html', user=user)
+
+
+@app.route('/users/<int:user_id>/likes')
+def users_likes(user_id):
+    """Show list of liked messages of this user."""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    user = User.query.get_or_404(user_id)
+    liked_messages = [
+        l.message_id for l in Likes.query.filter_by(user_id=user_id).all()]
+    likes = [l.message_id for l in Likes.query.all()]
+
+    messages = (db.session.query(Message)
+                .filter(Message.id.in_(liked_messages))
+                .order_by(Message.timestamp.desc())
+                .limit(100)
+                .all())
+    return render_template('home.html', user=user, messages=messages, likes=likes)
 
 
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
@@ -306,13 +327,12 @@ def messages_destroy(message_id):
 
 @app.route('/users/add_like/<int:message_id>', methods=["POST"])
 def add_like(message_id):
-    """Add a like to a message. """
+    """Add (or delete) a like for a message. """
 
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    
     likes = [l.message_id for l in Likes.query.all()]
     if message_id in likes:
         like = Likes.query.filter_by(message_id=message_id).first()
@@ -326,7 +346,7 @@ def add_like(message_id):
     db.session.add(like)
     db.session.commit()
 
-    return redirect("/")
+    return redirect(request.referrer)
 
 ##############################################################################
 # Homepage and error pages
@@ -346,7 +366,6 @@ def homepage():
         user_following.append(user.id)
 
         likes = [l.message_id for l in Likes.query.all()]
-        print(likes)
         messages = (db.session.query(Message)
                     .filter(Message.user_id.in_(user_following))
                     .order_by(Message.timestamp.desc())
