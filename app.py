@@ -307,7 +307,7 @@ def messages_add():
 def messages_show(message_id):
     """Show a message."""
 
-    msg = Message.query.get(message_id)
+    msg = Message.query.get_or_404(message_id)
     return render_template('messages/show.html', message=msg)
 
 
@@ -319,14 +319,17 @@ def messages_destroy(message_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    msg = Message.query.get(message_id)
+    msg = Message.query.get_or_404(message_id)
+    if msg.user_id != g.user.id:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
     db.session.delete(msg)
     db.session.commit()
 
     return redirect(f"/users/{g.user.id}")
 
 
-@app.route('/users/add_like/<int:message_id>', methods=["POST"])
+@app.route('/messages/add_like/<int:message_id>', methods=["POST"])
 def add_like(message_id):
     """Add (or delete) a like for a message. """
 
@@ -342,12 +345,11 @@ def add_like(message_id):
         return redirect("/")
 
     msg = Message.query.get(message_id)
-    user = User.query.get_or_404(g.user.id)
-    like = Likes(user_id=user.id, message_id=msg.id)
+    like = Likes(user_id=g.user.id, message_id=msg.id)
     db.session.add(like)
     db.session.commit()
 
-    return redirect(request.referrer)
+    return redirect("/")
 
 ##############################################################################
 # Homepage and error pages

@@ -20,7 +20,7 @@
           {%if g.user != message.user %}
                 <form
                     method="POST"
-                    action="/users/add_like/{{ message.id }}"
+                    action="/messages/add_like/{{ message.id }}"
                     id="messages-form"
                 >
                     <button
